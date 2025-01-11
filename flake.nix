@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, flake-utils }: 
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs { inherit system; }; 
         
         defaultShimejis = {
           "little-ghost" = {
@@ -39,16 +39,20 @@
             xorg.libX11
             xorg.libXrender
             openjdk8-bootstrap
+            coreutils
           ];
 
           buildPhase = ''
-            ant jar
+            mkdir -p classes
+            mkdir -p $out/share/shimeji/img
+            cp -r img/* $out/share/shimeji/img/
+            ant -Dant.build.javac.source=1.8 -Dant.build.javac.target=1.8 jar
+
             ${if variant != null then ''
-              mkdir -p $out/share/shimeji/img
               mkdir -p shimeji-extract
               cd shimeji-extract
               ${pkgs.unzip}/bin/unzip ${defaultShimejis.${variant}.archive}
-              cp -r */ $out/share/shimeji/img/
+              find . -type f -name "*.png" -exec install -D {} $out/share/shimeji/img/{} \;
               cp ${defaultShimejis.${variant}.license} $out/share/shimeji/img/
               cd ..
             '' else ""}
@@ -60,29 +64,26 @@
             cp -r lib $out/lib/
             cp -r conf $out/share/shimeji/
             ${if variant == null then "mkdir -p $out/share/shimeji/img" else ""}
-            
+
             makeWrapper ${pkgs.openjdk8-bootstrap}/bin/java $out/bin/shimeji \
-              --add-flags "-classpath $out/lib/Shimeji.jar:$out/lib/lib/*" \
-              --add-flags "-Xmx1000m" \
-              --add-flags "com.group_finity.mascot.Main" \
               --add-flags "-Djava.util.logging.config.file=$out/share/shimeji/conf/logging.properties" \
+              --add-flags "-Xmx1000m" \
+              --add-flags "-classpath" \
+              --add-flags "$out/lib/Shimeji.jar:$out/lib/lib/*:$out/share/shimeji/conf:$out/share/shimeji/img" \
+              --add-flags "com.group_finity.mascot.Main" \
               --set CLASSPATH "$out/lib/Shimeji.jar:$out/lib/lib/*" \
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [
                 pkgs.xorg.libX11
                 pkgs.xorg.libXrender
                 pkgs.openjdk8-bootstrap
+                "${pkgs.openjdk8-bootstrap}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}"
+                "${pkgs.openjdk8-bootstrap}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}/server"
               ]}" \
               --run "cd $out/share/shimeji"
           '';
           
           meta = with pkgs.lib; {
             description = "This is a Linux version of the popular desktop mascot program, Shimeji";
-            longDescription = ''
-              This is a Linux version of the popular desktop mascot program, Shimeji.
-              Also, this project includes `Little Ghost` images, licenses for them can be found alongside with the compacted images in the source code.
-              This project is a fork of the original project by Yuki Yamada.
-              This flake is distributed under the MIT license. Portions of the source code included in this flake remain under the zlib license.
-            '';
             homepage = "https://github.com/datsfilipe/linux-shimeji";
             license = [ licenses.mit licenses.zlib ];
             maintainers = with maintainers; [ "datsfilipe <datsfilipe.foss@proton.me>" ];
