@@ -1,0 +1,30 @@
+name: Build Nix Flake
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+      
+      - name: Enable Nix Flakes
+        run: |
+          mkdir -p ~/.config/nix
+          echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+      
+      - name: Build default package
+        run: nix build
+      
+      - name: Build little-ghost variant
+        run: nix build .#little-ghost
+        
+      - name: Build little-ghost-polite variant
+        run: nix build .#little-ghost-polite
