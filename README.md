@@ -8,3 +8,49 @@ Also, this project includes `Little Ghost` images and it's licenses under [hk-im
 
 - Added a nix flake
 - Added Hollow Knight shimeji images and it's licenses under [hk-shimeji](./hk-shimeji)
+
+## Installation
+
+### NixOS System-Wide Installation
+
+Add to your `/etc/nixos/configuration.nix`:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    linux-shimeji.url = "github:datsfilipe/linux-shimeji";
+  };
+  
+  outputs = { self, nixpkgs, linux-shimeji }: {
+    nixosConfigurations.your-hostname = nixpkgs.lib.nixosSystem {
+      modules = [
+        ({ pkgs, ... }: {
+          environment.systemPackages = [
+            linux-shimeji.packages.${pkgs.system}.default
+            # Or choose a specific variant:
+            # linux-shimeji.packages.${pkgs.system}.little-ghost
+            # linux-shimeji.packages.${pkgs.system}.little-ghost-polite
+          ];
+        })
+      ];
+    };
+  };
+}
+```
+
+### Single User Installation
+
+```bash
+nix profile install github:datsfilipe/linux-shimeji
+# Or for specific variants:
+nix profile install github:datsfilipe/linux-shimeji#little-ghost
+nix profile install github:datsfilipe/linux-shimeji#little-ghost-polite
+```
+
+### Running
+
+After installation, launch with:
+```bash
+shimeji
+```
