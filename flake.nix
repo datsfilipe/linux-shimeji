@@ -31,14 +31,14 @@
           nativeBuildInputs = with pkgs; [ 
             ant 
             makeWrapper
-            openjdk8-bootstrap
+            temurin-bin-8
             unzip
           ];
           
           buildInputs = with pkgs; [
             xorg.libX11
             xorg.libXrender
-            openjdk8-bootstrap
+            temurin-bin-8
             coreutils
           ];
 
@@ -49,12 +49,14 @@
             ant -Dant.build.javac.source=1.8 -Dant.build.javac.target=1.8 jar
 
             ${if variant != null then ''
+              rm -f $out/share/shimeji/img/shime*.png
               mkdir -p shimeji-extract
               cd shimeji-extract
               ${pkgs.unzip}/bin/unzip ${defaultShimejis.${variant}.archive}
-              find . -type f -name "*.png" -exec install -D {} $out/share/shimeji/img/{} \;
+              find . -type f -name "*.png" -exec install -D -t $out/share/shimeji/img/ {} \;
               cp ${defaultShimejis.${variant}.license} $out/share/shimeji/img/
               cd ..
+              rm -rf shimeji-extract
             '' else ""}
           '';
           
@@ -65,7 +67,7 @@
             cp -r conf $out/share/shimeji/
             ${if variant == null then "mkdir -p $out/share/shimeji/img" else ""}
 
-            makeWrapper ${pkgs.openjdk8-bootstrap}/bin/java $out/bin/shimeji \
+            makeWrapper ${pkgs.temurin-bin-8}/bin/java $out/bin/shimeji \
               --add-flags "-Djava.util.logging.config.file=$out/share/shimeji/conf/logging.properties" \
               --add-flags "-Xmx1000m" \
               --add-flags "-classpath" \
@@ -75,10 +77,11 @@
               --prefix LD_LIBRARY_PATH : "${pkgs.lib.makeLibraryPath [
                 pkgs.xorg.libX11
                 pkgs.xorg.libXrender
-                pkgs.openjdk8-bootstrap
-                "${pkgs.openjdk8-bootstrap}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}"
-                "${pkgs.openjdk8-bootstrap}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}/server"
+                pkgs.temurin-bin-8
+                "${pkgs.temurin-bin-8}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}"
+                "${pkgs.temurin-bin-8}/lib/openjdk/jre/lib/${pkgs.stdenv.hostPlatform.linuxArch}/server"
               ]}" \
+              --set LD_PRELOAD "${pkgs.temurin-bin-8}/jre/lib/amd64/libawt.so:${pkgs.temurin-bin-8}/jre/lib/amd64/libjawt.so" \
               --run "cd $out/share/shimeji"
           '';
           
@@ -99,14 +102,14 @@
 
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            openjdk8-bootstrap
+            temurin-bin-8
             ant
           ];
           
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath [
             pkgs.xorg.libX11
             pkgs.xorg.libXrender
-            pkgs.openjdk8-bootstrap
+            pkgs.temurin-bin-8
           ];
         };
       }
